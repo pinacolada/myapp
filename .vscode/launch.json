@@ -10,7 +10,7 @@
         "windows": {
           "runtimeExecutable": "electron.cmd"
         },
-        "args" : ["."]
+        "args" : ["main.js"]
       }
     ]
   }

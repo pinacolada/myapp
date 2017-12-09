@@ -1,26 +1,5 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-class Point {
-    constructor(px, py) {
-        this.px = px;
-        this.py = py;
-        console.log("Point :", this.toString());
-    }
-    toString() {
-        return `(x:${this.px} - y:${this.py})`;
-    }
-}
-class Rect extends Point {
-    constructor(px, py, width, height) {
-        super(px, py);
-        this.width = width;
-        this.height = height;
-        console.log("Rect :", this.toString());
-    }
-    toString() {
-        return `(x:${this.px} - y:${this.py})-(w:${this.width} - h:${this.height})`;
-    }
-}
 let mainWindow = null;
 const electron_1 = require("electron");
 function createWindow() {

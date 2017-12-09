@@ -1,12 +1,10 @@
 {
   "name": "myapp",
   "version": "1.0.0",
-  "description": "Mon application en Typescript avec NodeJS",
+  "description": "Application Typescript Electron dans Visual Studio Code",
   "main": "main",
   "scripts": {
-    "start": "npm run build:live",
-    "build:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./main.ts",
-    "pretest": "tsc -w",
+    "pretest": "tsc",
     "test": "electron ."
   },
   "keywords": [
