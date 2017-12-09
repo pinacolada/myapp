@@ -1,0 +1,27 @@
+{
+  "name": "myapp",
+  "version": "1.0.0",
+  "description": "Mon application en Typescript avec NodeJS",
+  "main": "main",
+  "scripts": {
+    "start": "npm run build:live",
+    "build:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./main.ts",
+    "pretest": "tsc -w",
+    "test": "electron ."
+  },
+  "keywords": [
+    "typesscript",
+    "electron",
+    "nodejs",
+    "javascript",
+    "es6"
+  ],
+  "author": "pina34colada",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^1.7.9",
+    "nodemon": "^1.12.5",
+    "ts-node": "^3.3.0",
+    "typescript": "^2.6.2"
+  }
+}

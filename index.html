@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>La page trop bien</title>
+</head>
+<body>
+    <script>
+        let pv = process.versions, t = "Versions :";
+        for(let v in pv) t += "<br/>- <b>" + v + "</b> : " + pv[v]; 
+        document.write(t);
+    </script>
+</body>
+</html>

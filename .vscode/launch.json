@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Afficher la fenêtre",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceRoot}",
+        "runtimeExecutable": "electron",
+        "windows": {
+          "runtimeExecutable": "electron.cmd"
+        },
+        "args" : ["."]
+      }
+    ]
+  }
