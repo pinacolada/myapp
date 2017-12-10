@@ -228,27 +228,29 @@ class Ligne extends Visuel {
         super("div", idLigne, pStart);
         document.body.appendChild(this.el);
         this.setCss("width",`${pStart.distTo(pEnd)}px`,
-                    "transform-origin", "0 0", 
+                    "transform-origin", "0 0",
                     "transform", `rotate(${pStart.angleTo(pEnd)}rad)`);
         this.setStyle();
     }
-    setStyle(couleur:string="black", epaisseur:number=1.0, alpha:number=1) {
+    setStyle(couleur:string="black", epaisseur:number=1.0, alpha:number=1):Ligne {
         this.setCss("height", `${epaisseur}px`,
-                    "background-color", couleur, 
+                    "background-color", couleur,
                     "opacity",alpha.toString());
+        return this;
     }
 }
-let r = new Rect(100, 50, 400, 250);
+let r:Rect = new Rect(100, 50, 400, 250);
 
-let cadre = new Frame("cadre", r);
+let cadre:Frame = new Frame("cadre", r);
 cadre.setCss("background-color", "#999999");
 document.body.appendChild(cadre.el);
 
-new Ligne("dia1", r.topLeft,  r.botRight).setStyle("red");
-new Ligne("dia2", r.botLeft,  r.topRight).setStyle("green");
-new Ligne("haut", r.topLeft,  r.topRight).setStyle("blue");
-new Ligne("droi", r.topRight, r.botRight);
-new Ligne("bas",  r.botRight, r.botLeft);
-new Ligne("gau",  r.botLeft,  r.topLeft).setStyle("blue");
+let dia_1:Ligne = new Ligne("dia_1", r.topLeft,  r.botRight).setStyle("red");
+let dia_2:Ligne = new Ligne("dia_2", r.botLeft,  r.topRight).setStyle("green");
+let haut:Ligne = new Ligne("haut", r.topLeft,  r.topRight).setStyle("blue");
+let droi:Ligne = new Ligne("droi", r.topRight, r.botRight);
+let bas:Ligne = new Ligne("bas",  r.botRight, r.botLeft);
+let gau:Ligne = new Ligne("gau",  r.botLeft,  r.topLeft);
+gau.setStyle("blue");
 
 console.log(r.toString());
