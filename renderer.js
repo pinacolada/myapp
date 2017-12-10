@@ -1,4 +1,3 @@
-console.log("Je suis dans la page trop bien...");
 class Point {
     constructor(x = 0, y = 0) {
         this.x = x;
@@ -53,6 +52,7 @@ class Rect extends Point {
         this.y = py;
         this.width = width;
         this.height = height;
+        return this;
     }
     toString() {
         return `(x:${this.x} - y:${this.y})-(w:${this.width} - h:${this.height})`;
@@ -126,8 +126,9 @@ class Visuel {
         return this._pos;
     }
     set pos(value) {
-        if (this._pos.equals(value))
+        if (this._pos.equals(value)) {
             return;
+        }
         this._pos.setTo(value.x, value.y);
         this.setCss("left", `${this._pos.x}px`, "top", `${this._pos.y}px`);
     }
@@ -162,11 +163,13 @@ class Visuel {
             throw new TypeError("Impossible d'ajouter un visuel nul");
         }
         v.parent = this; // tout faire dans le setter parent
+        return v;
     }
     removeChild(v) {
         if (this.children.indexOf(v) > -1) {
             v.parent = null;
         }
+        return v;
     }
     removeChildren() {
         while (this.numChildren) {
@@ -234,16 +237,21 @@ class Ligne extends Visuel {
     }
     setStyle(couleur = "black", epaisseur = 1.0, alpha = 1) {
         this.setCss("height", `${epaisseur}px`, "background-color", couleur, "opacity", alpha.toString());
+        return this;
     }
 }
 let r = new Rect(100, 50, 400, 250);
 let cadre = new Frame("cadre", r);
 cadre.setCss("background-color", "#999999");
 document.body.appendChild(cadre.el);
-new Ligne("dia1", r.topLeft, r.botRight).setStyle("red");
-new Ligne("dia2", r.botLeft, r.topRight).setStyle("green");
-new Ligne("haut", r.topLeft, r.topRight).setStyle("blue");
-new Ligne("droi", r.topRight, r.botRight);
-new Ligne("bas", r.botRight, r.botLeft);
-new Ligne("gau", r.botLeft, r.topLeft).setStyle("blue");
-console.log(r.toString());
+let dia_1 = new Ligne("dia_1", r.topLeft, r.botRight).setStyle("red");
+let dia_2 = new Ligne("dia_2", r.botLeft, r.topRight).setStyle("green");
+let haut = new Ligne("haut", r.topLeft, r.topRight).setStyle("blue");
+let droi = new Ligne("droi", r.topRight, r.botRight);
+let bas = new Ligne("bas", r.botRight, r.botLeft);
+let gau = new Ligne("gau", r.botLeft, r.topLeft).setStyle("blue");
+let hRect = new Rect(150, 150, 200, 200);
+let hCent = hRect.topLeft.offset(hRect.width / 2, hRect.height / 2);
+console.log("l'horloge est placée en", hRect.toString());
+console.log("Son centre est en", hCent.toString());
+let horloge = new Frame("horloge", hRect);
