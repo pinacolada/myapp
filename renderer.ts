@@ -1,10 +1,10 @@
 class Couleur {
-    obj =  {  r:0,  g:0,  b:0,  a:1.0,   txt:"#000000", val:0, id:""};
+    obj =  {  r:0,  g:0,  b:0,  a:1.0,  txt:"", val:0, id:""};
     constructor(couleur:string|number, alpha:number = 1.0) {
-        if(typeof couleur === "string") {
-            this.txt = couleur;
+        if(typeof couleur === "number") {
+             this.val = couleur;
         } else {
-            this.val = couleur;
+            this.txt = couleur;
         }
         this.obj.a = alpha;
     }
@@ -34,10 +34,9 @@ class Couleur {
         return this.obj.val;
     }
 
-    set val(couleur:number) {
-        this.obj.val = couleur;
-        // tslint:disable-next-line:no-bitwise
-        this.obj.r = (couleur >> 16) & 0xFF, this.obj.g = (couleur >> 8) & 0xFF, this.obj.g = couleur & 0xFF;
+    set val(value:number) {
+        this.obj.val = value; // tslint:disable-next-line:no-bitwise
+        this.obj.r = value >> 16 & 0xFF,  this.obj.g = value >> 8 & 0xFF, this.obj.b = value & 0xFF;
     }
 }
 class Point {
@@ -153,9 +152,10 @@ class Visuel {
     children:Visuel[] = [];
     el:HTMLElement;
     _pos:Point = new Point();
-    constructor(type:string="DIV", id:string, pos:Point) {
+    constructor(target:HTMLElement|Visuel, type:string="DIV", id:string, pos:Point) {
         this.el = document.createElement(type);
-        this.el["visuel"] = this;
+        Object.defineProperty(this.el, "visuel", {value:this});
+        this.addTo(target);
         this.pos = new Point(pos.x, pos.y);
         this.setCss("box-sizing", "border-box", "position","absolute");
     }
@@ -186,6 +186,11 @@ class Visuel {
         while(this.numChildren) {
             this.children.pop().parent = null;
         }
+    }
+    rotate(radians:number, centerX:number=0, centerY:number=0):void {
+        this.setCss("left", `${this._pos.x - centerX}px`,"top", `${this._pos.y - centerY}px`);
+        this.setCss("transform-origin", `${centerX}px ${centerY}px`,
+                    "transform",        `rotate(${radians}rad)`);
     }
     setCss (...propVals:string[]):void {
         for(let i:number = 0; i < propVals.length; i+=2) {
@@ -244,18 +249,17 @@ class Visuel {
     get numChildren():number {
         return this.children.length;
     }
-
     get parent():Visuel {
-        return this.el.parentElement["visuel"];
+        return Reflect.get(this.el.parentElement, "visuel");
     }
     set parent(value:Visuel) {
         if(value === null) {
             // on enlève d'abord ce visuel de son support si c'est un visuel
             if(this.el.parentElement !== null) {
                 this.el.parentElement.removeChild(this.el);
-                if(this.el.parentElement["visuel"] instanceof Visuel) {
-                   let pv:Visuel = this.el.parentElement["visuel"];
-                   pv.children.splice(pv.children.indexOf(this), 1);
+                if (this.parent !== null && this.parent.children !==null) {
+                    let pc:Visuel[] = this.parent.children;
+                    pc.splice(pc.indexOf(this), 1);
                 }
             } else if(this.el.parentNode !=null) {
                 this.el.parentNode.removeChild(this.el);
@@ -270,8 +274,8 @@ class Visuel {
 }
 class Frame extends Visuel {
     _rect:Rect = new Rect();
-    constructor(idFrame:string, rect:Rect) {
-        super("div", idFrame, rect.topLeft);
+    constructor(target:any, idFrame:string, rect:Rect) {
+        super(target, "div", idFrame, rect.topLeft);
         this.rect = rect;
     }
     get rect():Rect {
@@ -280,46 +284,75 @@ class Frame extends Visuel {
     set rect(value:Rect) {
         this._rect.setTo(value.x, value.y, value.width, value.height);
         this.setCss("left", `${this._rect.left}px`,
-                    "top", `${this._rect.top}px`, 
+                    "top", `${this._rect.top}px`,
                     "width", `${this._rect.width}px`,
                     "height", `${this._rect.height}px`);
     }
 }
-class Ligne extends Visuel {
-    constructor(idLigne:string, public pStart:Point, public pEnd:Point) {
-        super("div", idLigne, pStart);
-        document.body.appendChild(this.el);
-        this.setCss("width",`${pStart.distTo(pEnd)}px`,
-                    "transform-origin", "0 0",
-                    "transform", `rotate(${pStart.angleTo(pEnd)}rad)`);
-        this.setStyle();
+class Disque extends Visuel {
+    constructor(target:any, idDisque:string, centre:Point,public rayon:number, couleur:number) {
+        super(target, "div", idDisque, centre);
+        this.setCss("left", (this.x - rayon)+"px", "top", (this.y - rayon)+"px");
+        this.setCss("width", rayon * 2 + "px", "height", rayon * 2 + "px","border-radius",rayon+"px");
+        this.backgroundColor = couleur;
     }
-    setStyle(couleur:string="black", epaisseur:number=1.0, alpha:number=1):Ligne {
-        this.setCss("height", `${epaisseur}px`,
-                    "background-color", couleur,
-                    "opacity",alpha.toString());
+}
+class Ligne extends Visuel {
+    constructor(target:any, idLigne:string, public pStart:Point, public pEnd:Point, cou:number, epai:number=1.0, alpha:number=1.0) {
+        super(target, "div", idLigne, pStart);
+        this.setCss("width",`${pStart.distTo(pEnd)}px`);
+        this.rotate(pStart.angleTo(pEnd), 0, 0);
+        this.setStyle(cou, epai, alpha);
+    }
+    setStyle(cou:number, epai:number=1.0, alpha:number=1.0):Ligne {
+        this.setCss("height", `${epai}px`, "background-color",new Couleur(cou, alpha).rgba);
+        this.setCss("top", this.pStart.y + (epai/2) + "px");
         return this;
     }
 }
+
+const body:HTMLElement = document.body;
+
 let r:Rect = new Rect(100, 50, 400, 250);
 
-let cadre:Frame = new Frame("cadre", r);
+let cadre:Frame = new Frame(body, "cadre", r);
 cadre.backgroundColor = 0x999999;
 cadre.addTo(document.body);
 
-let dia_1:Ligne = new Ligne("dia_1", r.topLeft,  r.botRight).setStyle("red");
-let dia_2:Ligne = new Ligne("dia_2", r.botLeft,  r.topRight).setStyle("green");
-let haut:Ligne = new Ligne("haut", r.topLeft,  r.topRight).setStyle("blue");
-let droi:Ligne = new Ligne("droi", r.topRight, r.botRight);
-let bas:Ligne = new Ligne("bas",  r.botRight, r.botLeft);
-let gau:Ligne = new Ligne("gau",  r.botLeft,  r.topLeft).setStyle("blue");
+let dia_1:Ligne = new Ligne(body, "dia_1", r.topLeft,  r.botRight, 0xFF0000);
+let dia_2:Ligne = new Ligne(body, "dia_2", r.botLeft,  r.topRight, 0x00FF00);
+let haut:Ligne = new Ligne(body, "haut", r.topLeft,  r.topRight, 0x0000FF);
+let droi:Ligne = new Ligne(body, "droi", r.topRight, r.botRight, 0x000000);
+let bas:Ligne = new Ligne(body, "bas",  r.botRight, r.botLeft, 0x000000);
+let gau:Ligne = new Ligne(body, "gau",  r.botLeft,  r.topLeft, 0x0000FF);
 
-let hRect:Rect = new Rect(150,150, 200,200);
-let hCent:Point = hRect.topLeft.offset(hRect.width/2, hRect.height/2);
-console.log("l'horloge est placée en", hRect.toString());
-console.log("Son centre est en", hCent.toString());
+class Horloge extends Disque {
+    constructor(idHorloge:string, public hCent:Point, public rayon:number) {
+        super(document.body, idHorloge, hCent,rayon, 0x333366);
+        const pi:number = Math.PI;
+        const pi2:number = pi * 2;
+        const pie:number = pi / 6;
+        const quart:number = pi/2;
 
-let horloge:Frame = new Frame("horloge", hRect);
-horloge.backgroundColor = 0x66FF66;
-horloge.borderRadius = 20;
-horloge.addTo(document.body);
+        // tour complet = 2 * Math.PI = tranche * 12 (pie = apple pie...)
+        for(let i:number = 0; i < 12; i ++) {
+            let d:Disque = new Disque(body, "pos_"+i, hCent.polarTo(rayon-8, pie * i), 3, 0x666699);
+        }
+        let sec:Ligne = new Ligne(body, "secondes", hCent, hCent.offset(0, rayon-15), 0x666699, 2);
+        let min:Ligne = new Ligne(body, "minutes", hCent, hCent.offset(0, rayon-20), 0x6666FF, 2);
+        let heu:Ligne = new Ligne(body, "heures", hCent, hCent.offset(0, rayon-25), 0x6666CC, 3);
+
+        // animation !
+        function changeTime(d:Date):void {
+            let h:number= d.getHours(), m:number = d.getMinutes();
+            let s:number = d.getSeconds(), mi:number = d.getMilliseconds();
+            sec.rotate((s + mi/1000) * (pi2/60) - quart);
+            min.rotate(((m + s/60) * pi2/60) - quart);
+            heu.rotate(((h + m/60) * pi2/12) - quart);
+        }
+        setInterval(() => changeTime(new Date()), 50);
+    }
+}
+
+let h1:Horloge = new Horloge("h1", new Point(250, 420), 80);
+let h2:Horloge = new Horloge("h2", new Point(120, 120), 100);

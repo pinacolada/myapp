@@ -1,11 +1,11 @@
 class Couleur {
     constructor(couleur, alpha = 1.0) {
-        this.obj = { r: 0, g: 0, b: 0, a: 1.0, txt: "#000000", val: 0, id: "" };
-        if (typeof couleur === "string") {
-            this.txt = couleur;
+        this.obj = { r: 0, g: 0, b: 0, a: 1.0, txt: "", val: 0, id: "" };
+        if (typeof couleur === "number") {
+            this.val = couleur;
         }
         else {
-            this.val = couleur;
+            this.txt = couleur;
         }
         this.obj.a = alpha;
     }
@@ -37,10 +37,9 @@ class Couleur {
     get val() {
         return this.obj.val;
     }
-    set val(couleur) {
-        this.obj.val = couleur;
-        // tslint:disable-next-line:no-bitwise
-        this.obj.r = (couleur >> 16) & 0xFF, this.obj.g = (couleur >> 8) & 0xFF, this.obj.g = couleur & 0xFF;
+    set val(value) {
+        this.obj.val = value; // tslint:disable-next-line:no-bitwise
+        this.obj.r = value >> 16 & 0xFF, this.obj.g = value >> 8 & 0xFF, this.obj.b = value & 0xFF;
     }
 }
 class Point {
@@ -84,15 +83,6 @@ class Point {
     }
     static Polar(p1, distance, angleRad) {
         return new Point(p1.x + Math.cos(angleRad) * distance, p1.y + Math.sin(angleRad) * distance);
-    }
-}
-class HTMLVisuel {
-    constructor(type) {
-        this.el = document.createElement(type);
-        this.el["visuel"] = this;
-    }
-    dispatch(eventType) {
-        this.el.dispatchEvent(new Event(eventType));
     }
 }
 class Rect extends Point {
@@ -164,23 +154,54 @@ class Rect extends Point {
         this.right = value.x;
     }
 }
-class Visuel extends HTMLVisuel {
-    constructor(type = "DIV", id, pos) {
-        super(type);
+class Visuel {
+    constructor(target, type = "DIV", id, pos) {
         this.children = [];
         this._pos = new Point();
+        this.el = document.createElement(type);
+        Object.defineProperty(this.el, "visuel", { value: this });
+        this.addTo(target);
         this.pos = new Point(pos.x, pos.y);
         this.setCss("box-sizing", "border-box", "position", "absolute");
     }
-    get pos() {
-        return this._pos;
-    }
-    set pos(value) {
-        if (this._pos.equals(value)) {
-            return;
+    addChild(v) {
+        if (v === null) {
+            throw new TypeError("Impossible d'ajouter un visuel nul");
         }
-        this._pos.setTo(value.x, value.y);
-        this.setCss("left", `${this._pos.x}px`, "top", `${this._pos.y}px`);
+        v.parent = this; // tout faire dans le setter parent
+        return v;
+    }
+    addTo(alt) {
+        if (alt instanceof Visuel) {
+            this.parent = alt;
+        }
+        else if (alt instanceof HTMLElement) {
+            alt.appendChild(this.el);
+        }
+    }
+    dispatch(eventType) {
+        this.el.dispatchEvent(new Event(eventType));
+    }
+    removeChild(v) {
+        if (this.children.indexOf(v) > -1) {
+            v.parent = null;
+        }
+        return v;
+    }
+    removeChildren() {
+        while (this.numChildren) {
+            this.children.pop().parent = null;
+        }
+    }
+    rotate(radians, centerX = 0, centerY = 0) {
+        this.setCss("left", `${this._pos.x - centerX}px`, "top", `${this._pos.y - centerY}px`);
+        this.setCss("transform-origin", `${centerX}px ${centerY}px`, "transform", `rotate(${radians}rad)`);
+    }
+    setCss(...propVals) {
+        for (let i = 0; i < propVals.length; i += 2) {
+            let [prop, val] = [propVals[i], propVals[i + 1]];
+            this.el.style[prop] = val;
+        }
     }
     get backgroundColor() {
         return new Couleur(this.el.style.backgroundColor).val;
@@ -193,6 +214,22 @@ class Visuel extends HTMLVisuel {
     }
     set borderColor(couleur) {
         this.setCss("border", "1px solid " + new Couleur(couleur).rgb);
+    }
+    get borderRadius() {
+        return parseInt(this.el.style.borderRadius, 10);
+    }
+    set borderRadius(value) {
+        this.setCss("border-radius", `${value}px`);
+    }
+    get pos() {
+        return this._pos;
+    }
+    set pos(value) {
+        if (this._pos.equals(value)) {
+            return;
+        }
+        this._pos.setTo(value.x, value.y);
+        this.setCss("left", `${this._pos.x}px`, "top", `${this._pos.y}px`);
     }
     get x() {
         return this._pos.x;
@@ -214,52 +251,20 @@ class Visuel extends HTMLVisuel {
             this.dispatch("position");
         }
     }
-    addChild(v) {
-        if (v === null) {
-            throw new TypeError("Impossible d'ajouter un visuel nul");
-        }
-        v.parent = this; // tout faire dans le setter parent
-        return v;
-    }
-    addTo(alt) {
-        if (alt instanceof Visuel) {
-            this.parent = alt;
-        }
-        else if (alt instanceof HTMLElement) {
-            alt.appendChild(this.el);
-        }
-    }
-    removeChild(v) {
-        if (this.children.indexOf(v) > -1) {
-            v.parent = null;
-        }
-        return v;
-    }
-    removeChildren() {
-        while (this.numChildren) {
-            this.children.pop().parent = null;
-        }
-    }
-    setCss(...propVals) {
-        for (let i = 0; i < propVals.length; i += 2) {
-            let [prop, val] = [propVals[i], propVals[i + 1]];
-            this.el.style[prop] = val;
-        }
-    }
     get numChildren() {
         return this.children.length;
     }
     get parent() {
-        return this.el.parentElement["visuel"];
+        return Reflect.get(this.el.parentElement, "visuel");
     }
     set parent(value) {
         if (value === null) {
             // on enlève d'abord ce visuel de son support si c'est un visuel
             if (this.el.parentElement !== null) {
                 this.el.parentElement.removeChild(this.el);
-                if (this.el.parentElement["visuel"] instanceof Visuel) {
-                    let pv = this.el.parentElement["visuel"];
-                    pv.children.splice(pv.children.indexOf(this), 1);
+                if (this.parent !== null && this.parent.children !== null) {
+                    let pc = this.parent.children;
+                    pc.splice(pc.indexOf(this), 1);
                 }
             }
             else if (this.el.parentNode != null) {
@@ -268,15 +273,15 @@ class Visuel extends HTMLVisuel {
         }
         else if (value instanceof Visuel) {
             value.el.appendChild(this.el);
-            if (value.children.indexOf(this) == -1) {
+            if (value.children.indexOf(this) === -1) {
                 value.children.push(this);
             }
         }
     }
 }
 class Frame extends Visuel {
-    constructor(idFrame, rect) {
-        super("div", idFrame, rect.topLeft);
+    constructor(target, idFrame, rect) {
+        super(target, "div", idFrame, rect.topLeft);
         this._rect = new Rect();
         this.rect = rect;
     }
@@ -288,34 +293,67 @@ class Frame extends Visuel {
         this.setCss("left", `${this._rect.left}px`, "top", `${this._rect.top}px`, "width", `${this._rect.width}px`, "height", `${this._rect.height}px`);
     }
 }
+class Disque extends Visuel {
+    constructor(target, idDisque, centre, rayon, couleur) {
+        super(target, "div", idDisque, centre);
+        this.rayon = rayon;
+        this.setCss("left", (this.x - rayon) + "px", "top", (this.y - rayon) + "px");
+        this.setCss("width", rayon * 2 + "px", "height", rayon * 2 + "px", "border-radius", rayon + "px");
+        this.backgroundColor = couleur;
+    }
+}
 class Ligne extends Visuel {
-    constructor(idLigne, pStart, pEnd) {
-        super("div", idLigne, pStart);
+    constructor(target, idLigne, pStart, pEnd, cou, epai = 1.0, alpha = 1.0) {
+        super(target, "div", idLigne, pStart);
         this.pStart = pStart;
         this.pEnd = pEnd;
-        document.body.appendChild(this.el);
-        this.setCss("width", `${pStart.distTo(pEnd)}px`, "transform-origin", "0 0", "transform", `rotate(${pStart.angleTo(pEnd)}rad)`);
-        this.setStyle();
+        this.setCss("width", `${pStart.distTo(pEnd)}px`);
+        this.rotate(pStart.angleTo(pEnd), 0, 0);
+        this.setStyle(cou, epai, alpha);
     }
-    setStyle(couleur = "black", epaisseur = 1.0, alpha = 1) {
-        this.setCss("height", `${epaisseur}px`, "background-color", couleur, "opacity", alpha.toString());
+    setStyle(cou, epai = 1.0, alpha = 1.0) {
+        this.setCss("height", `${epai}px`, "background-color", new Couleur(cou, alpha).rgba);
+        this.setCss("top", this.pStart.y + (epai / 2) + "px");
         return this;
     }
 }
+const body = document.body;
 let r = new Rect(100, 50, 400, 250);
-let cadre = new Frame("cadre", r);
+let cadre = new Frame(body, "cadre", r);
 cadre.backgroundColor = 0x999999;
 cadre.addTo(document.body);
-let dia_1 = new Ligne("dia_1", r.topLeft, r.botRight).setStyle("red");
-let dia_2 = new Ligne("dia_2", r.botLeft, r.topRight).setStyle("green");
-let haut = new Ligne("haut", r.topLeft, r.topRight).setStyle("blue");
-let droi = new Ligne("droi", r.topRight, r.botRight);
-let bas = new Ligne("bas", r.botRight, r.botLeft);
-let gau = new Ligne("gau", r.botLeft, r.topLeft).setStyle("blue");
-let hRect = new Rect(150, 150, 200, 200);
-let hCent = hRect.topLeft.offset(hRect.width / 2, hRect.height / 2);
-console.log("l'horloge est placée en", hRect.toString());
-console.log("Son centre est en", hCent.toString());
-let horloge = new Frame("horloge", hRect);
-horloge.backgroundColor = 0x6666FF;
-horloge.addTo(document.body);
+let dia_1 = new Ligne(body, "dia_1", r.topLeft, r.botRight, 0xFF0000);
+let dia_2 = new Ligne(body, "dia_2", r.botLeft, r.topRight, 0x00FF00);
+let haut = new Ligne(body, "haut", r.topLeft, r.topRight, 0x0000FF);
+let droi = new Ligne(body, "droi", r.topRight, r.botRight, 0x000000);
+let bas = new Ligne(body, "bas", r.botRight, r.botLeft, 0x000000);
+let gau = new Ligne(body, "gau", r.botLeft, r.topLeft, 0x0000FF);
+class Horloge extends Disque {
+    constructor(idHorloge, hCent, rayon) {
+        super(document.body, idHorloge, hCent, rayon, 0x333366);
+        this.hCent = hCent;
+        this.rayon = rayon;
+        const pi = Math.PI;
+        const pi2 = pi * 2;
+        const pie = pi / 6;
+        const quart = pi / 2;
+        // tour complet = 2 * Math.PI = tranche * 12 (pie = apple pie...)
+        for (let i = 0; i < 12; i++) {
+            let d = new Disque(body, "pos_" + i, hCent.polarTo(rayon - 8, pie * i), 3, 0x666699);
+        }
+        let sec = new Ligne(body, "secondes", hCent, hCent.offset(0, rayon - 15), 0x666699, 2);
+        let min = new Ligne(body, "minutes", hCent, hCent.offset(0, rayon - 20), 0x6666FF, 2);
+        let heu = new Ligne(body, "heures", hCent, hCent.offset(0, rayon - 25), 0x6666CC, 3);
+        // animation !
+        function changeTime(d) {
+            let h = d.getHours(), m = d.getMinutes();
+            let s = d.getSeconds(), mi = d.getMilliseconds();
+            sec.rotate((s + mi / 1000) * (pi2 / 60) - quart);
+            min.rotate(((m + s / 60) * pi2 / 60) - quart);
+            heu.rotate(((h + m / 60) * pi2 / 12) - quart);
+        }
+        setInterval(() => changeTime(new Date()), 50);
+    }
+}
+let h1 = new Horloge("h1", new Point(250, 420), 80);
+let h2 = new Horloge("h2", new Point(120, 120), 100);
