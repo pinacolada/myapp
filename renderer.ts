@@ -1,5 +1,5 @@
 class Couleur {
-    obj =  {  r:0,  g:0,  b:0,  a:1.0,  txt:"", val:0, id:""};
+    obj =  {r:0,  g:0,  b:0,  a:1.0,  txt:"", val:0, id:""};
     constructor(couleur:string|number, alpha:number = 1.0) {
         if(typeof couleur === "number") {
              this.val = couleur;
@@ -33,10 +33,9 @@ class Couleur {
     get val():number {
         return this.obj.val;
     }
-
     set val(value:number) {
         this.obj.val = value; // tslint:disable-next-line:no-bitwise
-        this.obj.r = value >> 16 & 0xFF,  this.obj.g = value >> 8 & 0xFF, this.obj.b = value & 0xFF;
+        this.obj.r = value >> 16 & 0xFF, this.obj.g = value >> 8 & 0xFF, this.obj.b = value & 0xFF;
     }
 }
 class Point {
@@ -56,7 +55,6 @@ class Point {
     offset(x:number, y:number):Point {
         return new Point(this.x + x, this.y + y);
     }
-
     toString():string {
         return `(x:${this.x} - y:${this.y})`;
     }
@@ -272,7 +270,7 @@ class Visuel {
         }
     }
 }
-class Frame extends Visuel {
+class Cadre extends Visuel {
     _rect:Rect = new Rect();
     constructor(target:any, idFrame:string, rect:Rect) {
         super(target, "div", idFrame, rect.topLeft);
@@ -312,10 +310,8 @@ class Ligne extends Visuel {
 }
 
 const body:HTMLElement = document.body;
-
 let r:Rect = new Rect(100, 50, 400, 250);
-
-let cadre:Frame = new Frame(body, "cadre", r);
+let cadre:Cadre = new Cadre(body, "cadre", r);
 cadre.backgroundColor = 0x999999;
 cadre.addTo(document.body);
 
@@ -326,23 +322,35 @@ let droi:Ligne = new Ligne(body, "droi", r.topRight, r.botRight, 0x000000);
 let bas:Ligne = new Ligne(body, "bas",  r.botRight, r.botLeft, 0x000000);
 let gau:Ligne = new Ligne(body, "gau",  r.botLeft,  r.topLeft, 0x0000FF);
 
+function palette(base:number):number[] {
+    let a:number[] = [base];
+    // tslint:disable-next-line:no-bitwise
+    let rgb:number[] = [base >> 16 & 0xFF, base >> 8 & 0xFF, base & 0xFF];
+    for(var i:number =0; i < 5; i++) {
+        let c:number[] = [rgb[0], rgb[1], rgb[2]].map((v)=> Math.min(v + (i*32), 255));
+        // tslint:disable-next-line:no-bitwise
+        a.push((c[0] << 16) | (c[1] << 8) | (c[2]));
+    }// de plus en plus clair...
+    return a;
+}
+
 class Horloge extends Disque {
-    constructor(idHorloge:string, public hCent:Point, public rayon:number) {
-        super(document.body, idHorloge, hCent,rayon, 0x333366);
-        const pi:number = Math.PI;
-        const pi2:number = pi * 2;
-        const pie:number = pi / 6;
-        const quart:number = pi/2;
-
+    constructor(idHorloge:string, public hCent:Point, public rayon:number, coulBase:number) {
+        super(document.body, idHorloge, hCent,rayon, coulBase);
         // tour complet = 2 * Math.PI = tranche * 12 (pie = apple pie...)
-        for(let i:number = 0; i < 12; i ++) {
-            let d:Disque = new Disque(body, "pos_"+i, hCent.polarTo(rayon-8, pie * i), 3, 0x666699);
-        }
-        let sec:Ligne = new Ligne(body, "secondes", hCent, hCent.offset(0, rayon-15), 0x666699, 2);
-        let min:Ligne = new Ligne(body, "minutes", hCent, hCent.offset(0, rayon-20), 0x6666FF, 2);
-        let heu:Ligne = new Ligne(body, "heures", hCent, hCent.offset(0, rayon-25), 0x6666CC, 3);
+        const pi:number = Math.PI, pi2:number = pi * 2;
+        const pie:number = pi / 6,quart:number = pi/2;
 
-        // animation !
+        // coder les couleurs d'horloges sur 4 teintes
+        let coul:number[] = palette(coulBase);
+        for(let i:number = 0; i < 12; i ++) {
+            let d:Disque = new Disque(body, "pos_"+i, hCent.polarTo(rayon-8, pie * i), 3, coul[2]);
+        }
+        let sec:Ligne = new Ligne(body, "secondes", hCent, hCent.offset(0, rayon-15), coul[2], 2);
+        let min:Ligne = new Ligne(body, "minutes", hCent, hCent.offset(0, rayon-20), coul[3], 2);
+        let heu:Ligne = new Ligne(body, "heures", hCent, hCent.offset(0, rayon-25), coul[4], 3);
+
+        // c'est parti pour animation !
         function changeTime(d:Date):void {
             let h:number= d.getHours(), m:number = d.getMinutes();
             let s:number = d.getSeconds(), mi:number = d.getMilliseconds();
@@ -354,5 +362,7 @@ class Horloge extends Disque {
     }
 }
 
-let h1:Horloge = new Horloge("h1", new Point(250, 420), 80);
-let h2:Horloge = new Horloge("h2", new Point(120, 120), 100);
+let h1:Horloge = new Horloge("h1", new Point(250, 420), 50, 0x113399);
+let h2:Horloge = new Horloge("h2", new Point(120, 120), 100, 0x660000);
+let h3:Horloge = new Horloge("h3", new Point(400, 300), 90, 0x336633);
+let h4:Horloge = new Horloge("h4", new Point(540, 200), 70, 0x333366);

@@ -279,7 +279,7 @@ class Visuel {
         }
     }
 }
-class Frame extends Visuel {
+class Cadre extends Visuel {
     constructor(target, idFrame, rect) {
         super(target, "div", idFrame, rect.topLeft);
         this._rect = new Rect();
@@ -319,7 +319,7 @@ class Ligne extends Visuel {
 }
 const body = document.body;
 let r = new Rect(100, 50, 400, 250);
-let cadre = new Frame(body, "cadre", r);
+let cadre = new Cadre(body, "cadre", r);
 cadre.backgroundColor = 0x999999;
 cadre.addTo(document.body);
 let dia_1 = new Ligne(body, "dia_1", r.topLeft, r.botRight, 0xFF0000);
@@ -328,23 +328,34 @@ let haut = new Ligne(body, "haut", r.topLeft, r.topRight, 0x0000FF);
 let droi = new Ligne(body, "droi", r.topRight, r.botRight, 0x000000);
 let bas = new Ligne(body, "bas", r.botRight, r.botLeft, 0x000000);
 let gau = new Ligne(body, "gau", r.botLeft, r.topLeft, 0x0000FF);
+function palette(base) {
+    let a = [base];
+    // tslint:disable-next-line:no-bitwise
+    let rgb = [base >> 16 & 0xFF, base >> 8 & 0xFF, base & 0xFF];
+    for (var i = 0; i < 5; i++) {
+        let c = [rgb[0], rgb[1], rgb[2]].map((v) => Math.min(v + (i * 32), 255));
+        // tslint:disable-next-line:no-bitwise
+        a.push((c[0] << 16) | (c[1] << 8) | (c[2]));
+    } // de plus en plus clair...
+    return a;
+}
 class Horloge extends Disque {
-    constructor(idHorloge, hCent, rayon) {
-        super(document.body, idHorloge, hCent, rayon, 0x333366);
+    constructor(idHorloge, hCent, rayon, coulBase) {
+        super(document.body, idHorloge, hCent, rayon, coulBase);
         this.hCent = hCent;
         this.rayon = rayon;
-        const pi = Math.PI;
-        const pi2 = pi * 2;
-        const pie = pi / 6;
-        const quart = pi / 2;
         // tour complet = 2 * Math.PI = tranche * 12 (pie = apple pie...)
+        const pi = Math.PI, pi2 = pi * 2;
+        const pie = pi / 6, quart = pi / 2;
+        // coder les couleurs d'horloges sur 4 teintes
+        let coul = palette(coulBase);
         for (let i = 0; i < 12; i++) {
-            let d = new Disque(body, "pos_" + i, hCent.polarTo(rayon - 8, pie * i), 3, 0x666699);
+            let d = new Disque(body, "pos_" + i, hCent.polarTo(rayon - 8, pie * i), 3, coul[2]);
         }
-        let sec = new Ligne(body, "secondes", hCent, hCent.offset(0, rayon - 15), 0x666699, 2);
-        let min = new Ligne(body, "minutes", hCent, hCent.offset(0, rayon - 20), 0x6666FF, 2);
-        let heu = new Ligne(body, "heures", hCent, hCent.offset(0, rayon - 25), 0x6666CC, 3);
-        // animation !
+        let sec = new Ligne(body, "secondes", hCent, hCent.offset(0, rayon - 15), coul[2], 2);
+        let min = new Ligne(body, "minutes", hCent, hCent.offset(0, rayon - 20), coul[3], 2);
+        let heu = new Ligne(body, "heures", hCent, hCent.offset(0, rayon - 25), coul[4], 3);
+        // c'est parti pour animation !
         function changeTime(d) {
             let h = d.getHours(), m = d.getMinutes();
             let s = d.getSeconds(), mi = d.getMilliseconds();
@@ -355,5 +366,7 @@ class Horloge extends Disque {
         setInterval(() => changeTime(new Date()), 50);
     }
 }
-let h1 = new Horloge("h1", new Point(250, 420), 80);
-let h2 = new Horloge("h2", new Point(120, 120), 100);
+let h1 = new Horloge("h1", new Point(250, 420), 50, 0x113399);
+let h2 = new Horloge("h2", new Point(120, 120), 100, 0x660000);
+let h3 = new Horloge("h3", new Point(400, 300), 90, 0x336633);
+let h4 = new Horloge("h4", new Point(540, 200), 70, 0x333366);
