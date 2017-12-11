@@ -1,45 +1,65 @@
 class Couleur {
     constructor(couleur, alpha = 1.0) {
-        this.obj = { r: 0, g: 0, b: 0, a: 1.0, txt: "", val: 0, id: "" };
+        this.obj = [0, 0, 0, 0, 0]; //  r:0,  g:0,  b:0,  a:1.0, val:0;
         if (typeof couleur === "number") {
             this.val = couleur;
         }
-        else {
-            this.txt = couleur;
+        else if (typeof couleur === "string") {
+            if (couleur.indexOf("#") === 0) {
+                this.val = parseInt(couleur.substr(1), 16);
+            }
+            else if (couleur.indexOf("rgba(") === 0) {
+                let rgb = couleur.split("(")[1];
+                [this.r, this.g, this.b, this.alpha] = rgb.split(",").map(item => parseFloat(item));
+            }
+            else if (couleur.indexOf("rgb(") === 0) {
+                let rgb = couleur.split("(")[1];
+                [this.r, this.g, this.b] = rgb.split(",").map(item => parseInt(item, 10));
+            }
+            else {
+                this.id = couleur; // nom de la couleur
+            }
         }
-        this.obj.a = alpha;
+        this.alpha = alpha;
     }
     get rgb() {
-        return `rgb(${this.obj.r}, ${this.obj.g}, ${this.obj.b})`;
+        return `rgb(${this.r}, ${this.g}, ${this.b})`;
     }
     get rgba() {
-        return `rgba(${this.obj.r}, ${this.obj.g}, ${this.obj.b}, ${this.obj.a})`;
-    }
-    get txt() {
-        return this.obj.txt;
-    }
-    set txt(couleur) {
-        if (couleur.indexOf("#") === 0) {
-            this.val = parseInt(couleur.substr(1), 16);
-        }
-        else if (couleur.indexOf("rgba(") === 0) {
-            let rgb = couleur.split("(")[1];
-            [this.obj.r, this.obj.g, this.obj.b, this.obj.a] = rgb.split(",").map(item => parseFloat(item));
-        }
-        else if (couleur.indexOf("rgb(") === 0) {
-            let rgb = couleur.split("(")[1];
-            [this.obj.r, this.obj.g, this.obj.b] = rgb.split(",").map(item => parseInt(item, 10));
-        }
-        else {
-            this.obj.txt = couleur; // nom de la couleur
-        }
+        return `rgba(${this.r}, ${this.g}, ${this.b}, ${this.alpha})`;
     }
     get val() {
-        return this.obj.val;
+        return this.obj[4];
     }
     set val(value) {
-        this.obj.val = value; // tslint:disable-next-line:no-bitwise
-        this.obj.r = value >> 16 & 0xFF, this.obj.g = value >> 8 & 0xFF, this.obj.b = value & 0xFF;
+        this.obj = [value >> 16 & 0xFF, value >> 8 & 0xFF, value & 0xFF, value, 1];
+    }
+    get r() {
+        return this.obj[0];
+    }
+    set r(value) {
+        this.obj[0] = value; // tslint:disable-next-line:no-bitwise
+        this.obj[4] = this.obj[0] << 16 | this.obj[1] << 8 | this.obj[2];
+    }
+    get g() {
+        return this.obj[1];
+    }
+    set g(value) {
+        this.obj[1] = value; // tslint:disable-next-line:no-bitwise
+        this.obj[4] = this.obj[0] << 16 | this.obj[1] << 8 | this.obj[2];
+    }
+    get b() {
+        return this.obj[2];
+    }
+    set b(value) {
+        this.obj[2] = value; // tslint:disable-next-line:no-bitwise
+        this.obj[4] = this.obj[0] << 16 | this.obj[1] << 8 | this.obj[2];
+    }
+    get alpha() {
+        return this.obj[3];
+    }
+    set alpha(value) {
+        this.obj[3] = value;
     }
 }
 class Point {
@@ -280,10 +300,11 @@ class Visuel {
     }
 }
 class Cadre extends Visuel {
-    constructor(target, idFrame, rect) {
+    constructor(target, idFrame, rect, couleurFond) {
         super(target, "div", idFrame, rect.topLeft);
         this._rect = new Rect();
         this.rect = rect;
+        this.backgroundColor = couleurFond;
     }
     get rect() {
         return this.rect;
@@ -299,6 +320,7 @@ class Disque extends Visuel {
         this.rayon = rayon;
         this.setCss("left", (this.x - rayon) + "px", "top", (this.y - rayon) + "px");
         this.setCss("width", rayon * 2 + "px", "height", rayon * 2 + "px", "border-radius", rayon + "px");
+        this.setCss("border", "1px solid rgba(66,66,66,0.7)");
         this.backgroundColor = couleur;
     }
 }
@@ -308,6 +330,7 @@ class Ligne extends Visuel {
         this.pStart = pStart;
         this.pEnd = pEnd;
         this.setCss("width", `${pStart.distTo(pEnd)}px`);
+        this.setCss("border", "1px solid rgba(66,66,66,0.7)");
         this.rotate(pStart.angleTo(pEnd), 0, 0);
         this.setStyle(cou, epai, alpha);
     }
@@ -319,43 +342,30 @@ class Ligne extends Visuel {
 }
 const body = document.body;
 let r = new Rect(100, 50, 400, 250);
-let cadre = new Cadre(body, "cadre", r);
-cadre.backgroundColor = 0x999999;
-cadre.addTo(document.body);
+let cadre = new Cadre(body, "cadre", r, 0x999999);
 let dia_1 = new Ligne(body, "dia_1", r.topLeft, r.botRight, 0xFF0000);
 let dia_2 = new Ligne(body, "dia_2", r.botLeft, r.topRight, 0x00FF00);
 let haut = new Ligne(body, "haut", r.topLeft, r.topRight, 0x0000FF);
 let droi = new Ligne(body, "droi", r.topRight, r.botRight, 0x000000);
 let bas = new Ligne(body, "bas", r.botRight, r.botLeft, 0x000000);
 let gau = new Ligne(body, "gau", r.botLeft, r.topLeft, 0x0000FF);
-function palette(base) {
-    let a = [base];
-    // tslint:disable-next-line:no-bitwise
-    let rgb = [base >> 16 & 0xFF, base >> 8 & 0xFF, base & 0xFF];
-    for (var i = 0; i < 5; i++) {
-        let c = [rgb[0], rgb[1], rgb[2]].map((v) => Math.min(v + (i * 32), 255));
-        // tslint:disable-next-line:no-bitwise
-        a.push((c[0] << 16) | (c[1] << 8) | (c[2]));
-    } // de plus en plus clair...
-    return a;
-}
 class Horloge extends Disque {
     constructor(idHorloge, hCent, rayon, coulBase) {
-        super(document.body, idHorloge, hCent, rayon, coulBase);
+        super(body, idHorloge, hCent, rayon, coulBase);
         this.hCent = hCent;
         this.rayon = rayon;
         // tour complet = 2 * Math.PI = tranche * 12 (pie = apple pie...)
-        const pi = Math.PI, pi2 = pi * 2;
-        const pie = pi / 6, quart = pi / 2;
-        // coder les couleurs d'horloges sur 4 teintes
-        let coul = palette(coulBase);
+        const pi = Math.PI, pi2 = pi * 2, quart = pi / 2;
+        // définit les couleurs sur 5 teintes en partant de la coulBase
+        const coul = palette(coulBase), pie = pi / 6;
         for (let i = 0; i < 12; i++) {
             let d = new Disque(body, "pos_" + i, hCent.polarTo(rayon - 8, pie * i), 3, coul[2]);
         }
-        let sec = new Ligne(body, "secondes", hCent, hCent.offset(0, rayon - 15), coul[2], 2);
-        let min = new Ligne(body, "minutes", hCent, hCent.offset(0, rayon - 20), coul[3], 2);
-        let heu = new Ligne(body, "heures", hCent, hCent.offset(0, rayon - 25), coul[4], 3);
-        // c'est parti pour animation !
+        let sec = new Ligne(body, "secondes", hCent, hCent.offset(0, rayon - 16), coul[4], 3);
+        let min = new Ligne(body, "minutes", hCent, hCent.offset(0, rayon - 20), coul[3], 3);
+        let heu = new Ligne(body, "heures", hCent, hCent.offset(0, rayon - 25), coul[2], 3);
+        let milieu = new Disque(body, "milieu", hCent, 6, coul[1]);
+        // c'est parti pour l'animation !
         function changeTime(d) {
             let h = d.getHours(), m = d.getMinutes();
             let s = d.getSeconds(), mi = d.getMilliseconds();
@@ -364,6 +374,17 @@ class Horloge extends Disque {
             heu.rotate(((h + m / 60) * pi2 / 12) - quart);
         }
         setInterval(() => changeTime(new Date()), 50);
+        function palette(base) {
+            let a = [base];
+            // tslint:disable-next-line:no-bitwise
+            let rgb = [base >> 16 & 0xFF, base >> 8 & 0xFF, base & 0xFF];
+            for (var i = 0; i < 5; i++) {
+                let c = [rgb[0], rgb[1], rgb[2]].map((v) => Math.min(v + (i * 32), 255));
+                // tslint:disable-next-line:no-bitwise
+                a.push((c[0] << 16) | (c[1] << 8) | (c[2]));
+            } // de plus en plus clair...
+            return a;
+        }
     }
 }
 let h1 = new Horloge("h1", new Point(250, 420), 50, 0x113399);
