@@ -1,3 +1,3 @@
 # myapp
-Programmation avec Electron, NodeJs et Typescript - Configuration
-Quatre horloges colorées en trois classes d'affichage
+Programmation avec Electron et Typescript
+Horloges colorées créées à l'aide de trois classes d'affichage
